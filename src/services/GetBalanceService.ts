@@ -1,6 +1,7 @@
-import { getCustomRepository } from 'typeorm';
+import { getCustomRepository, getRepository } from 'typeorm';
 
 import TransactionsRepository from '../repositories/TransactionsRepository';
+import Category from '../models/Category';
 import Transaction from '../models/Transaction';
 
 interface BalanceIf {
@@ -9,25 +10,42 @@ interface BalanceIf {
   total: number;
 }
 
+interface CompleteTransactionIf {
+  id: string;
+  title: string;
+  value: number;
+  type: string;
+  createt_at: Date;
+  updatet_at: Date;
+  category: Category;
+}
+
 class GetBalanceService {
-  private transactionsRepository: TransactionsRepository;
-
-  constructor(transactionsRepository: TransactionsRepository) {
-    this.transactionsRepository = transactionsRepository;
-  }
-
   public async execute(): Promise<Transaction> {
+    const categoriesRepository = getRepository(Category);
     const transactionsRepository = getCustomRepository(TransactionsRepository);
-    const allTransactions = await transactionsRepository.find();
+
+    const categories = await categoriesRepository.find();
+    const transactions = await transactionsRepository.find();
 
     const balance = await transactionsRepository.getBalance();
 
-    const balanceResult = {
-      allTransactions,
-      balance,
-    };
+    const completeTransactions: CompleteTransactionIf[] = transactions.map(
+      transaction => {
+        const completeTransaction = transaction;
 
-    return balanceResult;
+        completeTransaction.category = categories.find(
+          category => category.id === transaction.category_id,
+        );
+
+        delete completeTransaction.category_id;
+
+        return completeTransaction;
+      },
+    );
+
+    return { transactions: completeTransactions, balance };
+    // return { completeTransactions };
   }
 }
 
