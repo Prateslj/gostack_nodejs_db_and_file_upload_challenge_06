@@ -1,10 +1,9 @@
-import path from 'path';
 import multer from 'multer';
 import { Router } from 'express';
 import { getCustomRepository } from 'typeorm';
 
 import uploadConfig from '../config/upload';
-import GetBalanceService from '../services/GetBalanceService';
+// import GetBalanceService from '../services/GetBalanceService';
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import CreateTransactionService from '../services/CreateTransactionService';
 import DeleteTransactionService from '../services/DeleteTransactionService';
@@ -15,11 +14,17 @@ const transactionsRouter = Router();
 
 transactionsRouter.get('/', async (request, response) => {
   const transactionsRepository = getCustomRepository(TransactionsRepository);
-  const getBalance = new GetBalanceService(transactionsRepository);
 
-  const balance = await getBalance.execute();
+  const transactions = await transactionsRepository.find();
+  const balance = await transactionsRepository.getBalance();
 
-  return response.json(balance);
+  return response.json({ transactions, balance });
+
+  // const getBalance = new GetBalanceService();
+
+  // const balance = await getBalance.execute();
+
+  // return response.json(balance);
 });
 
 transactionsRouter.post('/', async (request, response) => {
@@ -42,12 +47,9 @@ transactionsRouter.delete('/:id', async (request, response) => {
 
   const deleteTransaction = new DeleteTransactionService();
 
-  const deletedTransaction = await deleteTransaction.execute({
-    id,
-  });
-  console.log('deleted transaction (route):', deletedTransaction);
+  await deleteTransaction.execute(id);
 
-  return response.json(deletedTransaction);
+  return response.status(204).send();
 });
 
 transactionsRouter.post(

@@ -1,5 +1,5 @@
 import { getCustomRepository, getRepository } from 'typeorm';
-// import AppError from '../errors/AppError';
+import AppError from '../errors/AppError';
 
 import Category from '../models/Category';
 import Transaction from '../models/Transaction';
@@ -22,6 +22,13 @@ class CreateTransactionService {
     const categoriesRepository = getRepository(Category);
     const transactionsRepository = getCustomRepository(TransactionRepository);
 
+    if (type === 'outcome') {
+      const { total } = await transactionsRepository.getBalance();
+      if (total < value) {
+        throw new AppError('Not enough money to allow this expense.');
+      }
+    }
+
     let categoryItem = await categoriesRepository.findOne({
       where: { title: category },
     });
@@ -36,7 +43,7 @@ class CreateTransactionService {
       title,
       value,
       type,
-      category_id: categoryItem.id,
+      category: categoryItem,
     });
 
     await transactionsRepository.save(transaction);
